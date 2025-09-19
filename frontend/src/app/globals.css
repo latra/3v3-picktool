@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  /* W2A brand colors */
+  --w2a-primary: #0080ff; /* blue */
+  --w2a-accent: #ff7430;  /* orange */
+  --w2a-bg: #0b1020;      /* deep dark navy */
+  --w2a-bg-elev: #121a2d; /* elevated surface */
+  --w2a-text: #e6eefc;    /* near-white */
+  --w2a-muted: #98a7c3;   /* muted text */
+
+  --background: var(--w2a-bg);
+  --foreground: var(--w2a-text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--w2a-bg);
+    --foreground: var(--w2a-text);
+  }
+}
+
+body {
+  background: radial-gradient(1200px 800px at 15% -10%, rgba(0,128,255,0.15), transparent 60%),
+              radial-gradient(1000px 700px at 85% 10%, rgba(255,116,48,0.12), transparent 60%),
+              var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Utility tokens used throughout components */
+.w2a-card {
+  background: linear-gradient(180deg, rgba(18,26,45,0.9), rgba(12,18,34,0.95));
+  border: 1px solid rgba(152,167,195,0.12);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  border-radius: 14px;
+}
+
+.w2a-border-primary { border-color: color-mix(in srgb, var(--w2a-primary) 60%, transparent); }
+.w2a-border-accent  { border-color: color-mix(in srgb, var(--w2a-accent) 60%, transparent); }
+.w2a-text-muted     { color: var(--w2a-muted); }
+.w2a-btn-primary    { background: linear-gradient(90deg, #0a74ff, var(--w2a-primary)); color: white; }
+.w2a-btn-accent     { background: linear-gradient(90deg, #ff6a21, var(--w2a-accent)); color: white; }
+
+/* Inputs */
+input, select, textarea {
+  background: #0f162b;
+  border: 1px solid rgba(152,167,195,0.2);
+  color: var(--w2a-text);
+}
+input::placeholder, textarea::placeholder { color: rgba(230,238,252,0.45); }
+
+/* Focus ring aligned with brand */
+:is(input, button, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--w2a-primary) 65%, transparent);
+}
+
+/* Pulsating animation for next draft slot */
+@keyframes pulsate {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    border-color: rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    border-color: rgba(59, 130, 246, 1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    border-color: rgba(59, 130, 246, 0.7);
+  }
+}
+
+.pulsate-blue {
+  animation: pulsate 2s infinite;
+  border-color: rgba(59, 130, 246, 0.7) !important;
+}
+
+@keyframes pulsate-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    border-color: rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    border-color: rgba(239, 68, 68, 1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    border-color: rgba(239, 68, 68, 0.7);
+  }
+}
+
+.pulsate-red {
+  animation: pulsate-red 2s infinite;
+  border-color: rgba(239, 68, 68, 0.7) !important;
+}
