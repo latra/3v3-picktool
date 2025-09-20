@@ -9,14 +9,18 @@ type Config struct {
 	Port   string
 	Host   string
 	WSPath string
+	FirebaseCredentialsPath string
+	FirebaseProjectID       string
 }
 
 // NewConfig creates a new configuration instance
 func NewConfig() *Config {
 	return &Config{
-		Port:   getEnv("PORT", "8080"),
-		Host:   getEnv("HOST", "localhost"),
-		WSPath: getEnv("WS_PATH", "/ws"),
+		Port:                    getEnv("PORT", "8080"),
+		Host:                    getEnv("HOST", "localhost"),
+		WSPath:                  getEnv("WS_PATH", "/ws"),
+		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
+		FirebaseProjectID:       getEnv("FIREBASE_PROJECT_ID", ""),
 	}
 }
 
