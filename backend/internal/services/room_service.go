@@ -63,6 +63,7 @@ func (s *RoomService) createEmptyRoom(roomId string) *models.Room {
 			Bans:  s.initializeBansArray(),
 			Picks: s.initializePicksArray(),
 		},
+		FearlessBans:  []models.Champion{}, // Lista vacía para rooms de espectadores
 		Clients:       make(map[*websocket.Conn]*models.Client),
 		TimeRemaining: 0,
 		TimerActive:   false,
@@ -86,6 +87,19 @@ func (s *RoomService) initializePicksArray() []models.Champion {
 		picks[i] = models.Champion{Name: "-1"}
 	}
 	return picks
+}
+
+// initializeFearlessBans convierte la lista de strings en una lista de Champion
+func (s *RoomService) initializeFearlessBans(fearlessBansNames []string) []models.Champion {
+	if fearlessBansNames == nil {
+		return []models.Champion{}
+	}
+	
+	fearlessBans := make([]models.Champion, len(fearlessBansNames))
+	for i, name := range fearlessBansNames {
+		fearlessBans[i] = models.Champion{Name: name}
+	}
+	return fearlessBans
 }
 
 // CreateRoom crea una nueva room basada en el CreateMessage
@@ -122,6 +136,7 @@ func (s *RoomService) CreateRoom(createMsg models.CreateMessage) (*models.Create
 			Bans:  s.initializeBansArray(),
 			Picks: s.initializePicksArray(),
 		},
+		FearlessBans: s.initializeFearlessBans(createMsg.FearlessBans),
 		Clients: make(map[*websocket.Conn]*models.Client),
 		
 		// Inicializar campos de timer
@@ -334,6 +349,11 @@ func (s *RoomService) processChampSelectAction(room *models.Room, team string, c
 		return fmt.Errorf("champion %s is already picked", champion)
 	}
 	
+	// Verificar que el campeón no esté en los fearless bans
+	if s.isChampionInFearlessBans(room, champion) {
+		return fmt.Errorf("champion %s is disabled (fearless ban)", champion)
+	}
+	
 	// Obtener la posición correspondiente a la fase actual
 	position := s.getPhasePosition(room.CurrentPhase)
 	if position == -1 {
@@ -388,6 +408,11 @@ func (s *RoomService) processChampPickAction(room *models.Room, team string, cha
 	
 	if s.isChampionPicked(room, champion, position) {
 		return fmt.Errorf("champion %s is already picked", champion)
+	}
+	
+	// Verificar que el campeón no esté en los fearless bans
+	if s.isChampionInFearlessBans(room, champion) {
+		return fmt.Errorf("champion %s is disabled (fearless ban)", champion)
 	}
 
 	// Obtener la posición correspondiente a la fase actual
@@ -592,6 +617,19 @@ func (s *RoomService) isChampionPicked(room *models.Room, championName string, p
 	return false
 }
 
+// isChampionInFearlessBans verifica si un campeón está en la lista de fearless bans
+func (s *RoomService) isChampionInFearlessBans(room *models.Room, championName string) bool {
+	championNameLower := strings.ToLower(strings.TrimSpace(championName))
+	
+	for _, champion := range room.FearlessBans {
+		if strings.ToLower(strings.TrimSpace(champion.Name)) == championNameLower {
+			return true
+		}
+	}
+	
+	return false
+}
+
 // advanceToNextPhase avanza a la siguiente fase en la secuencia
 func (s *RoomService) advanceToNextPhase(room *models.Room) {
 	// Parar el timer actual antes de cambiar de fase
@@ -778,6 +816,7 @@ func (s *RoomService) broadcastRoomUpdate(room *models.Room) {
 		TimerActive:   room.TimerActive,
 		BlueTeam:      blueTeamStatus,
 		RedTeam:       redTeamStatus,
+		FearlessBans:  s.extractChampionNames(room.FearlessBans),
 	}
 	room.TimerMutex.RUnlock()
 	

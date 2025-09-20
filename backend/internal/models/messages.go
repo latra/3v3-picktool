@@ -9,6 +9,7 @@ type CreateMessage struct {
 	RedTeamHasBans bool 	`json:"red_team_has_bans"`
 	TimePerPick int 					`json:"time_per_pick"`
 	TimePerBan int 					`json:"time_per_ban"`
+	FearlessBans []string 		`json:"fearless_bans,omitempty"`
 }
 
 type CreateResponseMessage struct {
@@ -51,6 +52,7 @@ type StatusMessage struct {
 	TimerActive bool          `json:"timer_active"`
 	BlueTeam TeamStatus 					`json:"blue_team"`
 	RedTeam TeamStatus 					`json:"red_team"`
+	FearlessBans []string 		`json:"fearless_bans"`
 }
 
 type UserJoinedMessage struct {
