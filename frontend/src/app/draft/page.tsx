@@ -218,6 +218,12 @@ function DraftPageContent() {
         team: 1 // Default team, you might want to make this dynamic
       });
     }
+    else if (gameId) {
+      sendMessage({
+        type: MessageTypes.JOIN,
+        room_id: gameId,
+      });
+    }
   }, [gameId, key, sendMessage]);
 
   useEffect(() => {

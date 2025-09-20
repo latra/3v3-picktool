@@ -12,12 +12,14 @@ import (
 )
 
 type RoomService struct {
-	rooms map[string]*models.Room
+	rooms           map[string]*models.Room
+	firebaseService *FirebaseService
 }
 
-func NewRoomService() *RoomService {
+func NewRoomService(firebaseService *FirebaseService) *RoomService {
 	return &RoomService{
-		rooms: make(map[string]*models.Room),
+		rooms:           make(map[string]*models.Room),
+		firebaseService: firebaseService,
 	}
 }
 
@@ -35,6 +37,36 @@ func (s *RoomService) generateUniqueRoomID() string {
 		if _, exists := s.rooms[id]; !exists {
 			return id
 		}
+	}
+}
+
+// createEmptyRoom crea una room vacía sin empezar (para espectadores)
+func (s *RoomService) createEmptyRoom(roomId string) *models.Room {
+	return &models.Room{
+		Id:              roomId,
+		RedTeamKey:      "",
+		BlueTeamKey:     "",
+		BlueTeamName:    "Blue Team",
+		RedTeamName:     "Red Team",
+		BlueTeamHasBans: false,
+		RedTeamHasBans:  false,
+		TimePerPick:     30,
+		TimePerBan:      30,
+		CurrentPhase:    models.NoReady,
+		BlueTeam: models.Team{
+			Name:  "Blue Team",
+			Bans:  s.initializeBansArray(),
+			Picks: s.initializePicksArray(),
+		},
+		RedTeam: models.Team{
+			Name:  "Red Team",
+			Bans:  s.initializeBansArray(),
+			Picks: s.initializePicksArray(),
+		},
+		Clients:       make(map[*websocket.Conn]*models.Client),
+		TimeRemaining: 0,
+		TimerActive:   false,
+		TimerCancel:   make(chan bool, 1),
 	}
 }
 
@@ -112,14 +144,27 @@ func (s *RoomService) CreateRoom(createMsg models.CreateMessage) (*models.Create
 	return response, nil
 }
 
-// GetRoom obtiene una room por su ID
+// GetRoom obtiene una room por su ID, primero busca en RAM, luego en Firebase
 func (s *RoomService) GetRoom(roomId string) (*models.Room, error) {
+	// Primero buscar en RAM
 	room, exists := s.rooms[roomId]
-	if !exists {
-		return nil, fmt.Errorf("room not found")
+	if exists {
+		return room, nil
 	}
 
-	return room, nil
+	// Si no está en RAM, intentar cargar desde Firebase
+	if s.firebaseService != nil {
+		firebaseRoom, err := s.firebaseService.LoadRoom(roomId)
+		if err == nil {
+			// Room encontrada en Firebase, cargarla en RAM
+			s.rooms[roomId] = firebaseRoom
+			log.Printf("Room %s loaded from Firestore and cached in RAM", roomId)
+			return firebaseRoom, nil
+		}
+		log.Printf("Room %s not found in Firestore: %v", roomId, err)
+	}
+
+	return nil, fmt.Errorf("room not found")
 }
 
 // GetRooms obtiene todas las rooms (para debugging)
@@ -133,9 +178,16 @@ func (s *RoomService) GetRooms() map[string]*models.Room {
 
 // JoinRoom añade un cliente a una room y determina su equipo basado en la key
 func (s *RoomService) JoinRoom(roomId string, conn *websocket.Conn, key string) (string, error) {
-	room, exists := s.rooms[roomId]
-	if !exists {
-		return "", fmt.Errorf("room not found")
+	// Usar GetRoom que maneja tanto RAM como Firebase
+	room, err := s.GetRoom(roomId)
+	if err != nil {
+		// Si no se encuentra la room, crear una nueva room sin empezar
+		if key == "" { // Solo espectadores pueden unirse a rooms no existentes
+			room = s.createEmptyRoom(roomId)
+			s.rooms[roomId] = room
+		} else {
+			return "", fmt.Errorf("room not found")
+		}
 	}
 
 	// Determinar el equipo basado en la key
@@ -572,6 +624,12 @@ func (s *RoomService) advanceToNextPhase(room *models.Room) {
 	for i, phase := range phaseSequence {
 		if room.CurrentPhase == phase && i < len(phaseSequence)-1 {
 			room.CurrentPhase = phaseSequence[i+1]
+			
+			// Si la nueva fase es Finished, guardar en Firebase y limpiar de RAM
+			if room.CurrentPhase == models.Finished {
+				s.handleFinishedRoom(room)
+				return // No iniciar timer para fase terminada
+			}
 			break
 		}
 	}
@@ -770,7 +828,41 @@ func (s *RoomService) manualAdvanceToNextPhase(room *models.Room) {
 		if room.CurrentPhase == phase && i < len(phaseSequence)-1 {
 			room.CurrentPhase = phaseSequence[i+1]
 			log.Printf("Advanced to phase: %s", room.CurrentPhase)
+			
+			// Si la nueva fase es Finished, guardar en Firebase y limpiar de RAM
+			if room.CurrentPhase == models.Finished {
+				s.handleFinishedRoom(room)
+			}
 			break
 		}
 	}
+}
+
+// handleFinishedRoom maneja una room que ha terminado el draft
+func (s *RoomService) handleFinishedRoom(room *models.Room) {
+	log.Printf("Draft finished for room %s, saving to Firestore and cleaning from RAM", room.Id)
+	
+	// Guardar en Firebase si está configurado
+	if s.firebaseService != nil {
+		log.Printf("Firebase service available, attempting to save room %s", room.Id)
+		if err := s.firebaseService.SaveRoom(room); err != nil {
+			log.Printf("Error saving room %s to Firestore: %v", room.Id, err)
+			return
+		}
+		log.Printf("Room %s saved to Firestore successfully", room.Id)
+	} else {
+		log.Printf("Firebase service not available, skipping save for room %s", room.Id)
+	}
+	
+	// Programar limpieza de RAM después de un breve delay para permitir que los clientes reciban el estado final
+	go func() {
+		time.Sleep(5 * time.Second) // Esperar 5 segundos antes de limpiar
+		s.removeRoomFromRAM(room.Id)
+	}()
+}
+
+// removeRoomFromRAM elimina una room de la memoria RAM
+func (s *RoomService) removeRoomFromRAM(roomId string) {
+	delete(s.rooms, roomId)
+	log.Printf("Room %s removed from RAM", roomId)
 }
