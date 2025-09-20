@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChampionListItem } from '../../types/champion';
 import { fetchChampionData, formatChampionList, filterChampions, getChampionImage, getChampionImageById, createChampionKeyMapping, getChampionByKey } from '../../utils/championApi';
@@ -76,7 +76,7 @@ const isChampionDisabled = (championKey: number, gameRoom: StatusMessage | null)
   // Return true if champion is in either bans or picks
   return allBans.includes(championKeyStr) || allPicks.includes(championKeyStr);
 };
-export default function DraftPage() {
+function DraftPageContent() {
   const searchParams = useSearchParams();
   const gameId = searchParams.get('game_id');
   const key = searchParams.get('key');
@@ -587,5 +587,21 @@ export default function DraftPage() {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function DraftPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-2xl font-semibold text-white mb-2">Loading Draft</h2>
+          <p className="text-gray-400">Preparing champion draft...</p>
+        </div>
+      </div>
+    }>
+      <DraftPageContent />
+    </Suspense>
   );
 }

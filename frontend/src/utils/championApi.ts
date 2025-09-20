@@ -5,7 +5,6 @@ import { ChampionData, ChampionListItem } from '../types/champion';
 const CHAMPION_SQUARE_IMAGE_BASE_URL = 'https://ddragon.leagueoflegends.com/cdn/15.18.1/img/champion/';
 
 const CHAMPION_API_URL = 'https://ddragon.leagueoflegends.com/cdn/15.18.1/data/en_US/champion.json';
-const CHAMPION_IMAGE_BASE_URL = 'https://ddragon.leagueoflegends.com/cdn/15.18.1/img/champion/';
 
 const CHAMPION_IMAGE_BASE_URL_LOADING = 'https://cdn.communitydragon.org/latest/champion/';
 const CHAMPION_IMAGE_BASE_URL_LOADING_SKIN = '/splash-art/centered/skin/0';

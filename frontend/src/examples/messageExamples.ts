@@ -54,7 +54,7 @@ export const championBanExample: ActionMessage = {
 };
 
 // Helper function to send messages with proper typing
-export const sendTypedMessage = <T>(sendMessage: (msg: any) => boolean, message: T): boolean => {
+export const sendTypedMessage = <T>(sendMessage: (msg: T) => boolean, message: T): boolean => {
   return sendMessage(message);
 };
 

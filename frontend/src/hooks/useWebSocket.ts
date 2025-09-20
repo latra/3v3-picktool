@@ -33,10 +33,10 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
     reconnectAttempt: 0
   });
 
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const shouldReconnect = useRef(true);
 
-  const connect = () => {
+  const connect = useCallback(() => {
     try {
       setState(prev => ({ ...prev, connectionStatus: 'connecting' }));
       
@@ -61,9 +61,14 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
         onClose?.(event);
 
         // Attempt to reconnect if it wasn't a manual close
-        if (shouldReconnect.current && state.reconnectAttempt < maxReconnectAttempts) {
-          setState(prev => ({ ...prev, reconnectAttempt: prev.reconnectAttempt + 1 }));
-          reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval);
+        if (shouldReconnect.current) {
+          setState(prev => {
+            if (prev.reconnectAttempt < maxReconnectAttempts) {
+              reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval);
+              return { ...prev, reconnectAttempt: prev.reconnectAttempt + 1 };
+            }
+            return prev;
+          });
         }
       };
 
@@ -76,9 +81,9 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
       setState(prev => ({ ...prev, connectionStatus: 'error' }));
       console.error('WebSocket connection failed:', error);
     }
-  };
+  }, [url, onOpen, onMessage, onClose, onError, maxReconnectAttempts, reconnectInterval]);
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     shouldReconnect.current = false;
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -86,9 +91,9 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
     if (state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.close();
     }
-  };
+  }, [state.socket]);
 
-  const sendMessage = useCallback(<T = any>(message: string | T) => {
+  const sendMessage = useCallback(<T = unknown>(message: string | T) => {
     if (state.socket && state.socket.readyState === WebSocket.OPEN) {
       const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
       state.socket.send(messageStr);
