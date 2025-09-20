@@ -9,6 +9,43 @@ import { config } from '../../lib/config';
 import { IncomingMessage, MessageTypes, PossiblePhases, PhaseHelpers, GamePhase } from '../../types/messages';
 import { StatusMessage, Status } from '../../types/messages';
 
+// Timer component
+const Timer = ({ timeRemaining, timerActive }: { timeRemaining: number, timerActive: boolean }) => {
+  const [displayTime, setDisplayTime] = useState(timeRemaining);
+
+  useEffect(() => {
+    setDisplayTime(timeRemaining);
+  }, [timeRemaining]);
+
+  useEffect(() => {
+    if (!timerActive || displayTime <= 0) return;
+
+    const interval = setInterval(() => {
+      setDisplayTime(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerActive, displayTime]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTimerColor = () => {
+    if (displayTime <= 10) return 'text-red-400';
+    if (displayTime <= 30) return 'text-yellow-400';
+    return 'text-green-400';
+  };
+
+  return (
+    <div className={`text-2xl font-bold ${getTimerColor()} text-center mb-4`}>
+      {timerActive ? formatTime(displayTime) : '--:--'}
+    </div>
+  );
+};
+
 // Helper functions to determine which slot should pulsate
 const getNextSlotInfo = (phase: GamePhase): { team: 'blue' | 'red' | null, type: 'ban' | 'pick' | null, slotIndex: number } => {
   switch (phase) {
@@ -233,11 +270,12 @@ function DraftPageContent() {
         <div className="flex flex-col items-center gap-3 mb-8">
           <img src="/W2A Logo blanco sin fondo.svg" alt="W2A" className="h-8 opacity-95" />
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0080ff] to-[#ff7430]">Champion Draft</h1>
-          {gameRoom?.current_phase && (
-            <div className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-[var(--w2a-text)]">
-              Phase: {gameRoom.current_phase}
-            </div>
-          )}
+          
+          {/* Timer Display */}
+          <Timer 
+            timeRemaining={gameRoom?.time_remaining || 0} 
+            timerActive={gameRoom?.timer_active || false} 
+          />
         </div>
 
         {/* Filters */}

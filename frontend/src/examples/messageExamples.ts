@@ -57,20 +57,3 @@ export const championBanExample: ActionMessage = {
 export const sendTypedMessage = <T>(sendMessage: (msg: T) => boolean, message: T): boolean => {
   return sendMessage(message);
 };
-
-/* Usage example in a component:
-
-import { useWebSocket } from "../hooks/useWebSocket";
-import { createDraftExample, sendTypedMessage } from "../examples/messageExamples";
-
-const MyComponent = () => {
-  const { sendMessage } = useWebSocket("ws://localhost:8080/ws");
-  
-  const createRoom = () => {
-    sendTypedMessage(sendMessage, createDraftExample);
-  };
-  
-  // ... rest of component
-};
-
-*/
