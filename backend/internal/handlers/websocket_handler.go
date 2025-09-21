@@ -127,6 +127,7 @@ func (h *WebSocketHandler) handleJoinRoom(conn *websocket.Conn, msgBytes []byte)
 		TimerActive:   room.TimerActive,
 		BlueTeam:      h.convertTeamToTeamStatus(room.BlueTeam),
 		RedTeam:       h.convertTeamToTeamStatus(room.RedTeam),
+		FearlessBans:  h.extractChampionNames(room.FearlessBans),
 	}
 	room.TimerMutex.RUnlock()
 
@@ -147,6 +148,7 @@ func (h *WebSocketHandler) handleJoinRoom(conn *websocket.Conn, msgBytes []byte)
 		TimerActive:   room.TimerActive,
 		BlueTeam:      h.convertTeamToTeamStatus(room.BlueTeam),
 		RedTeam:       h.convertTeamToTeamStatus(room.RedTeam),
+		FearlessBans:  h.extractChampionNames(room.FearlessBans),
 	}
 	room.TimerMutex.RUnlock()
 
@@ -193,6 +195,7 @@ func (h *WebSocketHandler) handleAction(conn *websocket.Conn, msgBytes []byte) {
 		TimerActive:   room.TimerActive,
 		BlueTeam:      h.convertTeamToTeamStatus(room.BlueTeam),
 		RedTeam:       h.convertTeamToTeamStatus(room.RedTeam),
+		FearlessBans:  h.extractChampionNames(room.FearlessBans),
 	}
 	room.TimerMutex.RUnlock()
 
@@ -233,7 +236,11 @@ func (h *WebSocketHandler) convertTeamToTeamStatus(team models.Team) models.Team
 func (h *WebSocketHandler) extractChampionNames(champions []models.Champion) []string {
 	names := make([]string, len(champions))
 	for i, champion := range champions {
-		names[i] = champion.Name
+		if champion.Name == "-1" {
+			names[i] = "" // Posición vacía
+		} else {
+			names[i] = champion.Name
+		}
 	}
 	return names
 }
