@@ -9,7 +9,6 @@ interface DraftUrlsModalProps {
   blueTeamUrl: string;
   redTeamUrl: string;
   spectatorUrl: string;
-  isFearless: boolean;
   title?: string;
   subtitle?: string;
 }
@@ -20,7 +19,6 @@ export default function DraftUrlsModal({
   blueTeamUrl,
   redTeamUrl,
   spectatorUrl,
-  isFearless,
   title = "Draft Room Created!",
   subtitle = "Share these URLs with your teams and spectators"
 }: DraftUrlsModalProps) {
@@ -47,8 +45,8 @@ export default function DraftUrlsModal({
         <button 
           className="w-full py-4 px-6 rounded-xl transition-all duration-300 font-semibold shadow-lg bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 text-white hover:from-slate-700 hover:via-slate-800 hover:to-slate-900 hover:shadow-xl hover:shadow-slate-500/25 transform hover:scale-[1.02] active:scale-[0.98] border border-slate-500/20 mb-6" 
           onClick={() => {
-            const blueUrlWithFearless = blueTeamUrl + (isFearless ? "&fearless=true" : "");
-            const redUrlWithFearless = redTeamUrl + (isFearless ? "&fearless=true" : "");
+            const blueUrlWithFearless = blueTeamUrl ;
+            const redUrlWithFearless = redTeamUrl ;
             navigator.clipboard.writeText("Blue: " + blueUrlWithFearless + "\n" + "Red: " + redUrlWithFearless + "\n" + "Spectator: " + spectatorUrl);
           }}
         >
@@ -64,13 +62,13 @@ export default function DraftUrlsModal({
               <input 
                 type="text" 
                 placeholder="Blue team key" 
-                value={blueTeamUrl + (isFearless ? "&fearless=true" : "")} 
+                value={blueTeamUrl} 
                 disabled 
                 className="flex-1 px-5 py-3 border border-blue-300/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 bg-white/10 text-white placeholder-gray-400 backdrop-blur-sm" 
               />
               <button 
                 className="px-4 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 hover:shadow-xl hover:shadow-blue-500/25 transform hover:scale-[1.05] active:scale-[0.95] flex items-center justify-center" 
-                onClick={() => navigator.clipboard.writeText(blueTeamUrl + (isFearless ? "&fearless=true" : ""))}
+                onClick={() => navigator.clipboard.writeText(blueTeamUrl)}
                 title="Copy Blue Team URL"
               >
                 <FontAwesomeIcon icon={faCopy} className="w-4 h-4" />
@@ -85,13 +83,13 @@ export default function DraftUrlsModal({
               <input 
                 type="text" 
                 placeholder="Red team key" 
-                value={redTeamUrl + (isFearless ? "&fearless=true" : "")} 
+                value={redTeamUrl} 
                 disabled 
                 className="flex-1 px-5 py-3 border border-red-300/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 transition-all duration-300 bg-white/10 text-white placeholder-gray-400 backdrop-blur-sm" 
               />
               <button 
                 className="px-4 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white hover:from-red-600 hover:via-red-700 hover:to-red-800 hover:shadow-xl hover:shadow-red-500/25 transform hover:scale-[1.05] active:scale-[0.95] flex items-center justify-center" 
-                onClick={() => navigator.clipboard.writeText(redTeamUrl + (isFearless ? "&fearless=true" : ""))}
+                onClick={() => navigator.clipboard.writeText(redTeamUrl)}
                 title="Copy Red Team URL"
               >
                 <FontAwesomeIcon icon={faCopy} className="w-4 h-4" />
@@ -106,7 +104,7 @@ export default function DraftUrlsModal({
               <input 
                 type="text" 
                 placeholder="Spectator URL" 
-                value={spectatorUrl + (isFearless ? "&fearless=true" : "")} 
+                value={spectatorUrl} 
                 disabled 
                 className="flex-1 px-5 py-3 border border-purple-300/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-300 bg-white/10 text-white placeholder-gray-400 backdrop-blur-sm" 
               />

@@ -188,16 +188,6 @@ export default function Home() {
         />
         <label htmlFor="red-bans" className="w2a-text-muted">Red team has bans</label>
       </div>
-      <div className="flex items-center gap-2">
-        <input 
-          type="checkbox" 
-          id="fearless-bans"
-          checked={isFearless}
-          onChange={(e) => setIsFearless(e.target.checked)}
-          className="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-        />
-        <label htmlFor="fearless-bans" className="w2a-text-muted">Fearless Draft?</label>
-      </div>
       <button 
         type="submit"
         disabled={connectionStatus !== 'connected'}
@@ -241,7 +231,6 @@ export default function Home() {
       blueTeamUrl={blueTeamUrl}
       redTeamUrl={redTeamUrl}
       spectatorUrl={spectatorUrl}
-      isFearless={isFearless}
     />
     
     {/* Footer */}

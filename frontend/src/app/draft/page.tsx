@@ -118,7 +118,6 @@ function DraftPageContent() {
   const gameId = searchParams.get('game_id');
   const key = searchParams.get('key');
   const team = searchParams.get('team');
-  const fearless = searchParams.get('fearless');
   const [champions, setChampions] = useState<ChampionListItem[]>([]);
   const [filteredChampions, setFilteredChampions] = useState<ChampionListItem[]>([]);
   const [championMapping, setChampionMapping] = useState<Record<string, ChampionListItem>>({});
@@ -132,6 +131,11 @@ function DraftPageContent() {
   const [isReady, setIsReady] = useState(false);
   const [selectedChampion, setSelectedChampion] = useState<ChampionListItem | null>(null);
   const [showNewDraftModal, setShowNewDraftModal] = useState(false);
+  const [showTeamNamesModal, setShowTeamNamesModal] = useState(false);
+  const [newTeamNames, setNewTeamNames] = useState({
+    blue: '',
+    red: ''
+  });
   const [newDraftUrls, setNewDraftUrls] = useState({
     blue: '',
     red: '',
@@ -200,26 +204,43 @@ function DraftPageContent() {
   const createFearlessDraft = () => {
     if (!gameRoom) return;
 
-    // Collect all picked champions from both teams
+    // Initialize team names with current names and show modal
+    setNewTeamNames({
+      blue: gameRoom.blue_team.name,
+      red: gameRoom.red_team.name
+    });
+    setShowTeamNamesModal(true);
+  };
+
+  const confirmCreateFearlessDraft = () => {
+    if (!gameRoom) return;
+
+    // Collect all picked champions from both teams and existing fearless bans
     const allPicks = [
       ...(gameRoom.blue_team.picks || []),
-      ...(gameRoom.red_team.picks || []),
-      ...(gameRoom.fearless_bans || [])
+      ...(gameRoom.red_team.picks || [])
     ].filter(pick => pick && pick !== "-1");
+
+    // Always include existing fearless bans
+    const allFearlessBans = [
+      ...(gameRoom.fearless_bans || []),
+      ...allPicks
+    ].filter(ban => ban && ban !== "-1");
 
     const createMessage: CreateMessage = {
       type: MessageTypes.CREATE,
-      blue_team_name: gameRoom.blue_team.name,
-      red_team_name: gameRoom.red_team.name,
+      blue_team_name: newTeamNames.blue,
+      red_team_name: newTeamNames.red,
       blue_team_has_bans: true,
       red_team_has_bans: true,
       time_per_pick: gameRoom.time_per_pick,
       time_per_ban: gameRoom.time_per_ban,
-      fearless_bans: allPicks
+      fearless_bans: allFearlessBans
     };
 
-    console.log('Creating fearless draft with picked champions as bans:', allPicks);
+    console.log('Creating fearless draft with all fearless bans:', allFearlessBans);
     sendMessage(createMessage);
+    setShowTeamNamesModal(false);
   };
 
   useEffect(() => {
@@ -683,6 +704,60 @@ function DraftPageContent() {
         </p>
       </footer>
 
+      {/* Team Names Modal */}
+      {showTeamNamesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 max-w-md w-full animate-in fade-in duration-300 slide-in-from-bottom-4">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">Configure Team Names</h2>
+              <p className="text-gray-300">Set the team names for the new Fearless draft</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {/* Blue Team Name */}
+              <div>
+                <label className="block text-blue-200 font-semibold mb-2">Blue Team Name</label>
+                <input
+                  type="text"
+                  value={newTeamNames.blue}
+                  onChange={(e) => setNewTeamNames(prev => ({ ...prev, blue: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-800 border border-blue-500/30 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
+                  placeholder="Enter blue team name"
+                />
+              </div>
+
+              {/* Red Team Name */}
+              <div>
+                <label className="block text-red-200 font-semibold mb-2">Red Team Name</label>
+                <input
+                  type="text"
+                  value={newTeamNames.red}
+                  onChange={(e) => setNewTeamNames(prev => ({ ...prev, red: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-800 border border-red-500/30 rounded-lg focus:outline-none focus:border-red-500 text-white placeholder-gray-400"
+                  placeholder="Enter red team name"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowTeamNamesModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCreateFearlessDraft}
+                disabled={!newTeamNames.blue.trim() || !newTeamNames.red.trim()}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Draft
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New Draft URLs Modal */}
       <DraftUrlsModal
         isOpen={showNewDraftModal}
@@ -690,7 +765,6 @@ function DraftPageContent() {
         blueTeamUrl={newDraftUrls.blue}
         redTeamUrl={newDraftUrls.red}
         spectatorUrl={newDraftUrls.spectator}
-        isFearless={true}
         title="Next Fearless Draft Created!"
         subtitle="Share these URLs for the next round with previous picks banned"
       />
