@@ -6,8 +6,9 @@ import { ChampionListItem } from '../../types/champion';
 import { fetchChampionData, formatChampionList, filterChampions, getChampionImage, getChampionImageById, createChampionKeyMapping, getChampionByKey } from '../../utils/championApi';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { config } from '../../lib/config';
-import { IncomingMessage, MessageTypes, PossiblePhases, PhaseHelpers, GamePhase } from '../../types/messages';
+import { IncomingMessage, MessageTypes, PossiblePhases, PhaseHelpers, GamePhase, CreateMessage } from '../../types/messages';
 import { StatusMessage, Status } from '../../types/messages';
+import DraftUrlsModal from '../../components/DraftUrlsModal';
 
 // Timer component
 const Timer = ({ timeRemaining, timerActive }: { timeRemaining: number, timerActive: boolean }) => {
@@ -97,17 +98,16 @@ const isChampionDisabled = (championKey: number, gameRoom: StatusMessage | null)
   
   // Convert championKey to string for comparison
   const championKeyStr = championKey.toString();
-  
   // Check all bans from both teams
   const allBans = [
     ...(gameRoom.blue_team.bans || []),
-    ...(gameRoom.red_team.bans || [])
+    ...(gameRoom.red_team.bans || []),
+    ...(gameRoom.fearless_bans || [])
   ].filter(ban => ban && ban !== "-1");
-  
   // Check all picks from both teams
   const allPicks = [
     ...(gameRoom.blue_team.picks || []),
-    ...(gameRoom.red_team.picks || [])
+    ...(gameRoom.red_team.picks || []),
   ].filter(pick => pick && pick !== "-1");
   
   // Return true if champion is in either bans or picks
@@ -118,6 +118,7 @@ function DraftPageContent() {
   const gameId = searchParams.get('game_id');
   const key = searchParams.get('key');
   const team = searchParams.get('team');
+  const fearless = searchParams.get('fearless');
   const [champions, setChampions] = useState<ChampionListItem[]>([]);
   const [filteredChampions, setFilteredChampions] = useState<ChampionListItem[]>([]);
   const [championMapping, setChampionMapping] = useState<Record<string, ChampionListItem>>({});
@@ -130,6 +131,12 @@ function DraftPageContent() {
   const [gameRoom, setGameRoom] = useState<StatusMessage | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [selectedChampion, setSelectedChampion] = useState<ChampionListItem | null>(null);
+  const [showNewDraftModal, setShowNewDraftModal] = useState(false);
+  const [newDraftUrls, setNewDraftUrls] = useState({
+    blue: '',
+    red: '',
+    spectator: ''
+  });
   const { connectionStatus, sendMessage } = useWebSocket(config.websocketUrl, {
     onMessage: (event) => {
       try {
@@ -139,7 +146,15 @@ function DraftPageContent() {
         // Handle different message types
         switch (message.type) {
           case MessageTypes.CREATE_RESPONSE:
-            console.error('Create response message received here. This should not happen.');
+            if ('room_id' in message) {
+              console.log('New fearless draft created:', message.room_id);
+              setNewDraftUrls({
+                blue: config.websiteUrl + "/draft?game_id=" + message.room_id + "&key=" + message.blue_team_key + "&team=blue",
+                red: config.websiteUrl + "/draft?game_id=" + message.room_id + "&key=" + message.red_team_key + "&team=red",
+                spectator: config.websiteUrl + "/draft?game_id=" + message.room_id
+              });
+              setShowNewDraftModal(true);
+            }
             break;
           case MessageTypes.STATUS:
             console.log('Status update:', message);
@@ -180,6 +195,31 @@ function DraftPageContent() {
         champion: selectedChampion?.key.toString()
       });
     }
+  };
+
+  const createFearlessDraft = () => {
+    if (!gameRoom) return;
+
+    // Collect all picked champions from both teams
+    const allPicks = [
+      ...(gameRoom.blue_team.picks || []),
+      ...(gameRoom.red_team.picks || []),
+      ...(gameRoom.fearless_bans || [])
+    ].filter(pick => pick && pick !== "-1");
+
+    const createMessage: CreateMessage = {
+      type: MessageTypes.CREATE,
+      blue_team_name: gameRoom.blue_team.name,
+      red_team_name: gameRoom.red_team.name,
+      blue_team_has_bans: true,
+      red_team_has_bans: true,
+      time_per_pick: gameRoom.time_per_pick,
+      time_per_ban: gameRoom.time_per_ban,
+      fearless_bans: allPicks
+    };
+
+    console.log('Creating fearless draft with picked champions as bans:', allPicks);
+    sendMessage(createMessage);
   };
 
   useEffect(() => {
@@ -469,27 +509,39 @@ function DraftPageContent() {
               </div>
             )}
 
-            {/* Centered Button at Bottom */}
+            {/* Centered Buttons at Bottom */}
             <div className="fixed bottom-15 left-1/2 -translate-x-1/2 w-96 bg-gradient-to-t to-transparent p-4 pt-8 z-50">
-              <button
-                className="w-full py-3 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#0080ff] to-[#ff7430] hover:brightness-110 hover:shadow-[0_0_25px_rgba(0,128,255,0.25)]"
-                onClick={() => {
-                  console.log('Action button clicked');
-                  handleClick();
-                }}
-                disabled={PhaseHelpers.notTurn(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red') || gameRoom?.current_phase === PossiblePhases.FINISHED}
-              >
-                {PhaseHelpers.isNotReadyPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red') 
-                  ? 'Ready'
-                  : PhaseHelpers.isBanPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red')
-                    ? 'Ban Champion'
-                    : PhaseHelpers.isPickPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red')
-                      ? 'Pick Champion'
-                      : gameRoom?.current_phase === PossiblePhases.FINISHED
-                        ? 'Finished'
-                      : 'Waiting...'
-                }
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  className="w-full py-3 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#0080ff] to-[#ff7430] hover:brightness-110 hover:shadow-[0_0_25px_rgba(0,128,255,0.25)]"
+                  onClick={() => {
+                    console.log('Action button clicked');
+                    handleClick();
+                  }}
+                  disabled={PhaseHelpers.notTurn(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red') || gameRoom?.current_phase === PossiblePhases.FINISHED}
+                >
+                  {PhaseHelpers.isNotReadyPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red') 
+                    ? 'Ready'
+                    : PhaseHelpers.isBanPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red')
+                      ? 'Ban Champion'
+                      : PhaseHelpers.isPickPhase(gameRoom?.current_phase || PossiblePhases.NO_READY, team as 'blue' | 'red')
+                        ? 'Pick Champion'
+                        : gameRoom?.current_phase === PossiblePhases.FINISHED
+                          ? 'Finished'
+                        : 'Waiting...'
+                  }
+                </button>
+                
+                {/* Fearless Draft Button - Only show if draft is finished */}
+                {gameRoom?.current_phase === PossiblePhases.FINISHED && (
+                  <button
+                    className="w-full py-3 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 hover:shadow-[0_0_25px_rgba(147,51,234,0.25)]"
+                    onClick={createFearlessDraft}
+                  >
+                    🔄 Nuevo draft Fearless
+                  </button>
+                )}
+              </div>
             </div>
         </div>
 
@@ -630,6 +682,18 @@ function DraftPageContent() {
           </a>
         </p>
       </footer>
+
+      {/* New Draft URLs Modal */}
+      <DraftUrlsModal
+        isOpen={showNewDraftModal}
+        onClose={() => setShowNewDraftModal(false)}
+        blueTeamUrl={newDraftUrls.blue}
+        redTeamUrl={newDraftUrls.red}
+        spectatorUrl={newDraftUrls.spectator}
+        isFearless={true}
+        title="Next Fearless Draft Created!"
+        subtitle="Share these URLs for the next round with previous picks banned"
+      />
     </div>
   );
 }

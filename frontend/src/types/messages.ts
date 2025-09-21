@@ -9,6 +9,7 @@ export interface CreateMessage {
   red_team_has_bans: boolean;
   time_per_pick: number;
   time_per_ban: number;
+  fearless_bans: string[]
 }
 
 export interface CreateResponseMessage {
@@ -41,7 +42,8 @@ export interface StatusMessage {
   current_phase: typeof PossiblePhases[keyof typeof PossiblePhases];
   time_per_pick: number;
   time_per_ban: number;
-  time_remaining: number;
+  time_remaining: number; 
+  fearless_bans: string[];
   timer_active: boolean;
   blue_team: Team;
   red_team: Team;

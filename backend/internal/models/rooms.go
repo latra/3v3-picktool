@@ -34,6 +34,7 @@ type Room struct {
 	CurrentPhase Phase `json:"current_phase"`
 	BlueTeam Team `json:"blue_team"`
 	RedTeam Team `json:"red_team"`
+	FearlessBans []Champion `json:"fearless_bans"`
 	Clients map[*websocket.Conn]*Client `json:"-"` // Connected clients
 	
 	// Timer fields

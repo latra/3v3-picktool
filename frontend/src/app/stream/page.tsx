@@ -198,6 +198,42 @@ function StreamPageContent() {
 
   return (
     <div className="w-screen h-screen bg-transparent text-white overflow-hidden relative">
+      {/* Fearless Bans Row - Above everything */}
+      {gameRoom?.fearless_bans && gameRoom.fearless_bans.length > 0 && (
+        <div className="absolute bottom-72 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="flex gap-2 justify-center">
+            {gameRoom.fearless_bans.map((bannedChampion, index) => (
+              <div
+                key={`fearless-ban-${index}`}
+                className="relative w-12 h-12 rounded overflow-hidden border border-gray-600 bg-gray-800"
+              >
+                {bannedChampion && bannedChampion !== "-1" ? (
+                  <img
+                    src={(() => {
+                      const champion = getChampionByKey(bannedChampion, championMapping);
+                      return champion ? getChampionImage(champion.id) : `https://ddragon.leagueoflegends.com/cdn/15.18.1/img/champion/Annie.png`;
+                    })()}
+                    alt={`Fearless Ban ${getChampionByKey(bannedChampion, championMapping)?.name || bannedChampion}`}
+                    className="w-full h-full object-cover opacity-60"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ddragon.leagueoflegends.com/cdn/15.18.1/img/champion/Annie.png`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+                    ?
+                  </div>
+                )}
+                {/* Red X overlay to indicate ban */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-red-500 text-xl font-bold drop-shadow-lg">✕</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Bottom Horizontal Bar */}
       <div className="absolute bottom-0 left-0 right-0 bg-gray-900/95 border-t border-gray-700 px-8 py-6">
         {/* Timer Bar - At the top edge of the frame */}
@@ -287,15 +323,9 @@ function StreamPageContent() {
           </div>
 
           {/* W2A Logo - Center */}
-          <div className="flex-shrink-0 px-8">
-            <img 
-              src="/W2A Logo blanco sin fondo.svg" 
-              alt="W2A Logo" 
-              className="h-24 w-auto"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+          <div className="flex-shrink-0 px-8 flex flex-col items-center">
+            {/* Logo space - can add W2A logo here if needed */}
+            <img src="/W2A Logo blanco sin fondo.svg" alt="W2A" className="h-32 w-auto" />
           </div>
 
           {/* Red Team - Right Side */}

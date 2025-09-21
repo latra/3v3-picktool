@@ -21,18 +21,19 @@ type FirebaseService struct {
 
 // RoomData represents the structure saved to Firebase
 type RoomData struct {
-	Id              string      `json:"id"`
-	BlueTeamName    string      `json:"blue_team_name"`
-	RedTeamName     string      `json:"red_team_name"`
-	BlueTeamHasBans bool        `json:"blue_team_has_bans"`
-	RedTeamHasBans  bool        `json:"red_team_has_bans"`
-	TimePerPick     int         `json:"time_per_pick"`
-	TimePerBan      int         `json:"time_per_ban"`
-	CurrentPhase    models.Phase `json:"current_phase"`
-	BlueTeam        models.Team `json:"blue_team"`
-	RedTeam         models.Team `json:"red_team"`
-	CreatedAt       int64       `json:"created_at"`
-	CompletedAt     int64       `json:"completed_at,omitempty"`
+	Id              string             `json:"id"`
+	BlueTeamName    string             `json:"blue_team_name"`
+	RedTeamName     string             `json:"red_team_name"`
+	BlueTeamHasBans bool               `json:"blue_team_has_bans"`
+	RedTeamHasBans  bool               `json:"red_team_has_bans"`
+	TimePerPick     int                `json:"time_per_pick"`
+	TimePerBan      int                `json:"time_per_ban"`
+	CurrentPhase    models.Phase       `json:"current_phase"`
+	BlueTeam        models.Team        `json:"blue_team"`
+	RedTeam         models.Team        `json:"red_team"`
+	FearlessBans    []models.Champion  `json:"fearless_bans"`
+	CreatedAt       int64              `json:"created_at"`
+	CompletedAt     int64              `json:"completed_at,omitempty"`
 }
 
 // NewFirebaseService creates a new Firebase service instance
@@ -93,7 +94,9 @@ func (fs *FirebaseService) SaveRoom(room *models.Room) error {
 		CurrentPhase:    room.CurrentPhase,
 		BlueTeam:        room.BlueTeam,
 		RedTeam:         room.RedTeam,
-		CompletedAt:     getCurrentTimestamp(),
+		FearlessBans:    room.FearlessBans,
+		CreatedAt:       getCurrentTimestamp(), // Timestamp de cuando se creó la room
+		CompletedAt:     getCurrentTimestamp(), // Timestamp de cuando se completó
 	}
 
 	// Save to Firestore under collection "rooms" with document ID = roomId
@@ -147,6 +150,7 @@ func (fs *FirebaseService) LoadRoom(roomId string) (*models.Room, error) {
 		CurrentPhase:    roomData.CurrentPhase,
 		BlueTeam:        roomData.BlueTeam,
 		RedTeam:         roomData.RedTeam,
+		FearlessBans:    roomData.FearlessBans,
 		Clients:         make(map[*websocket.Conn]*models.Client), // Empty clients map
 		TimeRemaining:   0,
 		TimerActive:     false,
